@@ -1,16 +1,8 @@
----
-title: 'Group Project #1'
-author: "Mariapaola Ambrosone, Catherine Im, Joshua Choi, and Koushyar Shaloudegi"
-date: "3/5/2022"
-output: pdf_document
----
 
 ```{r, echo=FALSE, warning=FALSE}
 library(tidyverse)
 library(MASS)
 
-# Change the working directory based on your needs
-setwd("~/Desktop/UVA/STAT 6021/Group Project #1")
 Data_Diamonds = read.csv("diamonds4.csv",header=TRUE)
 ```
 # Executive Summary
