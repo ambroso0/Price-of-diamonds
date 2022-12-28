@@ -1,0 +1,221 @@
+---
+title: 'Group Project #1'
+author: "Mariapaola Ambrosone, Catherine Im, Joshua Choi, and Koushyar Shaloudegi"
+date: "3/5/2022"
+output: pdf_document
+---
+
+```{r, echo=FALSE, warning=FALSE}
+library(tidyverse)
+library(MASS)
+
+# Change the working directory based on your needs
+setwd("~/Desktop/UVA/STAT 6021/Group Project #1")
+Data_Diamonds = read.csv("diamonds4.csv",header=TRUE)
+```
+# Executive Summary
+We've received the request by Blue Nile to perform data exploration and visualization to see how the price of diamonds and other variables are related each other.
+Our dataset consists of 5 variables including price, which are carat, which is diamond's total weight, clarity, which is the assessment of small imperfections on the surface and within the stone, where lesser color gives higher value to the diamond's grade, and lastly cut, which refers to how well-proportioned the dimensions of a diamond are, and how these surfaces, or facets, are positioned to create sparkle and brilliance. Using these variables, we will perform explanatory analysis to see the relationship and trends between each variables and develop regression models to see the relationship between price and carat.
+
+```{r}
+# check for null values
+sapply(Data_Diamonds, function(x) sum(is.na(x)))
+
+#str(Data_Diamonds)
+#unique(Data_Diamonds$carat)
+#unique(Data_Diamonds$clarity)
+#unique(Data_Diamonds$color)
+#unique(Data_Diamonds$cut)
+#unique(Data_Diamonds$price)
+```
+We did a simple validation to check for the quality of data. Based on the R output, we can confirm that there are no null values in the data.
+
+```{r}
+Data_Diamonds$cut<-factor(Data_Diamonds$cut, levels=c("Astor Ideal","Ideal","Very Good","Good"))
+Data_Diamonds$clarity<-factor(Data_Diamonds$clarity, levels=c("FL", "IF", "VVS1", "VVS2", "VS1","VS2", "SI1", "SI2"))
+```
+
+# 2.2.1 Carat and Price
+```{r}
+ggplot(Data_Diamonds, aes(y=price, x=carat))+
+  geom_point()+
+  labs(x="carat", y="price", title="price vs carat")
+```
+
+# 2.2.2 Clarity and Price
+```{r}
+ggplot(Data_Diamonds, aes(x=clarity, y=log(price)))+geom_boxplot() + 
+  geom_boxplot(fill="Pink",outlier.color="blue")+ theme(axis.text.x=element_text(angle = 45,vjust=1,hjust=1))+
+  labs(x="clarity", y="price", title="Clarity vs Price")
+```
+
+# 2.2.3 Color and Price
+
+```{r}
+ggplot(Data_Diamonds, aes(y=log(price), x=color))+
+geom_boxplot(fill="Pink",outlier.color="blue")+ theme(axis.text.x=element_text(angle = 45,vjust=1,hjust=1))+
+labs(x="color", y="price (log scale)", title="Color vs Price")
+```
+
+# 2.2.4 Cut and Price
+```{r}
+ggplot(Data_Diamonds, aes(y=log(price), x=cut))+
+geom_boxplot(fill="Pink",outlier.color="blue")+ theme(axis.text.x=element_text(angle = 45,vjust=1,hjust=1))+
+labs(x="cut", y="price", title="Cut vs Price")
+```
+
+# 2.3.1 Clarity and Carat
+```{r}
+ggplot(Data_Diamonds, aes(x=clarity, y=carat))+geom_boxplot() + 
+  labs(x="clarity", y="carat", title="Clarity vs Carat")
+```
+
+
+# 2.3.2 Color and Carat
+```{r}
+ggplot(Data_Diamonds, aes(x=color, y=log(carat)))+geom_boxplot() + 
+  labs(x="color", y="log(carat)", title="Color vs Carat")
+```
+
+# 2.3.3 Carat and Cut
+```{r}
+ggplot(Data_Diamonds, aes(y=carat, x=cut))+
+geom_boxplot(fill="Pink",outlier.color="blue")+ theme(axis.text.x=element_text(angle = 45,vjust=1,hjust=1))+
+labs(x="cut", y="carat", title="Cut vs carat")
+```
+
+
+# 2.3.4 Clarity vs Color
+```{r}
+ggplot(Data_Diamonds, aes(x=clarity, fill=color))+geom_bar(position="fill") + 
+  labs(x="clarity", y="proportion", title="Clarity vs Color")
+```
+# 2.3.5 Clarity and Cut
+```{r}
+ggplot(Data_Diamonds, aes(x = cut, fill = clarity)) +
+  geom_bar() + 
+  scale_fill_viridis_d()+
+  theme(text = element_text(size = 15))
+```
+
+# Clarity vs Cut
+```{r}
+ggplot(Data_Diamonds, aes(x=cut, fill=clarity))+geom_bar(position="fill") + 
+  labs(x="cut", y="proportion", title="Clarity vs Cut")
+```
+# 2.3.6 Color and Cut
+
+```{r}
+ggplot(Data_Diamonds, aes(x = color, fill = cut)) +
+  geom_bar() + 
+  scale_fill_viridis_d()+
+  theme(text = element_text(size = 15))
+```
+
+## 3. Linear Regression
+```{r}
+ggplot(Data_Diamonds, aes(y=price, x=carat)) + geom_point() + geom_smooth(method = "lm", se=FALSE) +
+  labs(x="carat", y="price", title="Price vs Carat")
+```
+The scatter plot shows an increasing association between two variables, diamond's price and diamond's carat. Higher the diamond's carat, higher its price. However, the relationship fits more like exponential rather than linear. We will fit the residual plot to further check on the linearlity and others
+
+```{r}
+result<-lm(price~carat, data=Data_Diamonds)
+
+y_hat<-result$fitted.values
+res<-result$residuals
+  
+ggplot(Data_Diamonds, aes(x=y_hat,y=res))+
+  geom_point()+
+  geom_hline(yintercept=0, color="red")+
+  labs(x="Fitted y", y="Residuals", title="Residual Plot 1")
+```
+The residual plot shows curved pattern with non-constant variance, and the variance increases for higher fitted y values. The plot is also not evenly scattered across the horizontal axis, suggesting that a linear relationship does not hold between variables. Since our graph indicated exponential relationship, we will try running log transformation on response variable.
+
+```{r}
+Data_Diamonds$price_edited<-log(Data_Diamonds$price)
+
+result2<-lm(price_edited~carat, data=Data_Diamonds)
+  
+y_hat2<-result2$fitted.values
+res2<-result2$residuals
+  
+ggplot(Data_Diamonds, aes(x=y_hat2,y=res2))+
+  geom_point()+
+  geom_hline(yintercept=0, color="red")+
+  labs(x="Fitted y", y="Residuals", title="Residual Plot 2")
+```
+Looking at the residual plot of the transformed version, the variance looks more constant than previous residual plot. However, the residual plot still shows curved pattern. We will try running log transformation on the predictor variable to acommodate this. 
+
+```{r}
+Data_Diamonds$carat_trans <- log(Data_Diamonds$carat)
+result3 <- lm((price_edited)~carat_trans, data=Data_Diamonds)
+y_hat3<-result3$fitted.values
+res3<-result3$residuals
+
+ggplot(result3, aes(x=y_hat3,y=res3)) + geom_point() + geom_hline(yintercept=0, color = "red") +
+  labs(x="Fitted Y values", y="Residuals", title="Residual Plot 3")
+```
+The residual plot now shows no apparent pattern with constant variance. The plot shows that plots are evenly scattered across the horizontal axis, suggesting that a linear relationship now holds. Let's verify that by graphing two transformed variables below.
+
+```{r}
+ggplot(Data_Diamonds, aes(y=(price_edited), x=carat_trans))+
+  geom_point()+
+  geom_smooth(method = "lm", se=FALSE)+
+  labs(x="carat_transformed", y="price_transformed", title="Price vs Carat with Transformation")
+```
+
+```{r}
+boxcox(result3, lambda = seq(-0.2, 0.6, 0.01))
+```
+The boxcox plot suggests lambda value between 0.2 and 0.5, with 0.38 the maximum. I will try lambda = 0.4 power for the transformation on resopnse variable.
+
+```{r}
+Data_Diamonds$price_edited2 <- (Data_Diamonds$price_edited)^0.4
+result4 <- lm((price_edited2)~carat_trans, data=Data_Diamonds)
+y_hat4<-result4$fitted.values
+res4<-result4$residuals
+
+ggplot(result4, aes(x=y_hat4,y=res4)) + geom_point() + geom_hline(yintercept=0, color = "red") +
+  labs(x="Fitted Y values", y="Residuals", title="Residual Plot 4")
+
+ggplot(Data_Diamonds, aes(y=(price_edited), x=carat_trans))+
+  geom_point()+
+  geom_smooth(method = "lm", se=FALSE)+
+  labs(x="carat_transformed", y="price_transformed", title="Price vs Carat with Final Transformation")
+```
+scatter plot and residual plot looks the same with previous versions.
+
+```{r}
+boxcox(result4)
+```
+Running box-cox plot again with the resulting transformation, we get lambda = 1. Since our lambda = 1 is between the 95% CI, we do not need to continue on transformation.
+
+```{r}
+acf(res4, main="ACF Plot of Residuals")
+```
+ACF plot above indicates that residuals are not related, meaning there are no evidence that the errors are dependent.
+
+```{r}
+qqnorm(res4)
+qqline(res4, col="red")
+```
+QQ plot indicates the most of plots are following the line, suggesting that the residuals follow the normal distribution.
+
+```{r}
+summary(result4)
+anova(result4)
+```
+The final regression equation is y* = 2.348 + 0.221x* where y* = (log(y))^0.4 and x* = log(x) where B1 (0.221) means that the predicted price increases by exp(0.221)^0.4 = 1.092 for each unit increase in diamond's carat and B0 (2.348) means the predicted price would be exp(2.348)^0.4 = 2.558 when the diamond's carat is evaluated as 0.
+
+We run hypothesis test with H0 : B1 = 0, Ha : B1 =! 0
+Since the p-value is really small, less than the significance level (0.05), we reject the null hypothesis. There is enough evidence to support the statement that there is a linear relationship between the price of diamond and diamond's carat.
+
+
+# Normality barchart of price with and without transformation
+```{r}
+par(mfrow=c(1,2))
+hist(Data_Diamonds$price,main="Price")
+hist(log(Data_Diamonds$price),main="log Price")
+```
+
